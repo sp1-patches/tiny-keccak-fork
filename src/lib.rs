@@ -147,15 +147,7 @@ mod keccakf;
     feature = "tuple_hash",
     feature = "parallel_hash"
 ))]
-
-cfg_if::cfg_if! {
-    if #[cfg(all(target_os = "zkvm", target_vendor = "succinct"))] {
-        mod succinct;
-        pub use succinct::keccakf;
-    } else {
-        pub use keccakf::keccakf;
-    }
-}
+pub use keccakf::keccakf;
 
 #[cfg(feature = "k12")]
 mod k12;
