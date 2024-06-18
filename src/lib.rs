@@ -338,64 +338,28 @@ impl Buffer {
     }
 
     fn setout(&mut self, dst: &mut [u8], offset: usize, len: usize) {
-        cfg_if::cfg_if! {
-            if #[cfg(all(target_os = "zkvm", target_vendor = "succinct"))] {
-                let buffer: &mut [u8; WORDS * 8] = unsafe { core::mem::transmute(&mut self.0) };
-                let buffer = &mut buffer[offset..][..len];
-                dst[..len].copy_from_slice(buffer);
-            } else {
-                self.execute(offset, len, |buffer| dst[..len].copy_from_slice(buffer));
-            }
-        }
+        self.execute(offset, len, |buffer| dst[..len].copy_from_slice(buffer));
     }
 
     fn xorin(&mut self, src: &[u8], offset: usize, len: usize) {
-        cfg_if::cfg_if! {
-            if #[cfg(all(target_os = "zkvm", target_vendor = "succinct"))] {
-                let buffer: &mut [u8; WORDS * 8] = unsafe { core::mem::transmute(&mut self.0) };
-                let dst = &mut buffer[offset..][..len];
-                debug_assert!(dst.len() <= src.len());
-                let len = dst.len();
-                let mut dst_ptr = dst.as_mut_ptr();
-                let mut src_ptr = src.as_ptr();
-                for _ in 0..len {
-                    unsafe {
-                        *dst_ptr ^= *src_ptr;
-                        src_ptr = src_ptr.offset(1);
-                        dst_ptr = dst_ptr.offset(1);
-                    }
+        self.execute(offset, len, |dst| {
+            assert!(dst.len() <= src.len());
+            let len = dst.len();
+            let mut dst_ptr = dst.as_mut_ptr();
+            let mut src_ptr = src.as_ptr();
+            for _ in 0..len {
+                unsafe {
+                    *dst_ptr ^= *src_ptr;
+                    src_ptr = src_ptr.offset(1);
+                    dst_ptr = dst_ptr.offset(1);
                 }
-            } else {
-                self.execute(offset, len, |dst| {
-                    assert!(dst.len() <= src.len());
-                    let len = dst.len();
-                    let mut dst_ptr = dst.as_mut_ptr();
-                    let mut src_ptr = src.as_ptr();
-                    for _ in 0..len {
-                        unsafe {
-                            *dst_ptr ^= *src_ptr;
-                            src_ptr = src_ptr.offset(1);
-                            dst_ptr = dst_ptr.offset(1);
-                        }
-                    }
-                });
             }
-        }
+        });
     }
 
     fn pad(&mut self, offset: usize, delim: u8, rate: usize) {
-        cfg_if::cfg_if! {
-            if #[cfg(all(target_os = "zkvm", target_vendor = "succinct"))] {
-                let buffer: &mut [u8; WORDS * 8] = unsafe { core::mem::transmute(&mut self.0) };
-                buffer[offset] ^= delim;
-
-                let buffer: &mut [u8; WORDS * 8] = unsafe { core::mem::transmute(&mut self.0) };
-                buffer[rate - 1] ^= 0x80;
-            } else {
-                self.execute(offset, 1, |buff| buff[0] ^= delim);
-                self.execute(rate - 1, 1, |buff| buff[0] ^= 0x80);
-            }
-        }
+        self.execute(offset, 1, |buff| buff[0] ^= delim);
+        self.execute(rate - 1, 1, |buff| buff[0] ^= 0x80);
     }
 }
 
