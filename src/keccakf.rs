@@ -29,7 +29,14 @@ const RC: [u64; ROUNDS] = [
     0x8000000080008008u64,
 ];
 
-keccak_function!("`keccak-f[1600, 24]`", keccakf, ROUNDS, RC);
+cfg_if::cfg_if! {
+    if #[cfg(all(target_os = "zkvm", target_vendor = "succinct", target_arch = "riscv32"))] {
+        use crate::succinct;
+        use succinct::keccakf;
+    } else {
+        keccak_function!("`keccak-f[1600, 24]`", keccakf, ROUNDS, RC);
+    }
+}
 
 pub struct KeccakF;
 

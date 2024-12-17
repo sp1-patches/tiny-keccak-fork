@@ -13,6 +13,7 @@ categories = ["cryptography", "no-std"]
 
 [dependencies]
 crunchy = "0.2.2"
+cfg-if = "1.0"
 
 [profile.dev]
 opt-level = 3  # Controls the --opt-level the compiler builds with
